@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html ng-app="app">
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.1/angular.min.js"></script>
+</head>
+<body ng-controller="gistController">
+    <h2>Create a new gist</h2>
+    <form ng-submit="submitGist()">
+        <label>Gist Name</label>
+        <input ng-model="gist.name"/>
+        <br/>
+        <label>Description</label>
+        <input ng-model="gist.description"/>
+        <br/>
+        <label>Enter gist info to submit here:</label>
+        <textarea ng-model="gist.content"></textarea>
+        <input type="submit" id="submit" value="Submit Gist" />
+    </form>
+    <br/>
+    <h2>Create a new token</h2>
+    <label>Name of token to create</label>
+    <input ng-model="tokenNoteName"/>
+    <button ng-click="createToken()">Create new token</button>
+    <br/>
+    <h4>Token to be used</h4>
+    <div>{{authorization.token}}</div>
+    <br/>
+    <h2>Display all token names for JGIVIDEN1</h2>
+    <button ng-click="allTokenDescriptions()">All Token Description</button>
+    <div ng-repeat="token in tokenDescriptions">{{token.app.name}}</div>
+    <br/>
+    <h2>Display all public tokens</h2>
+    <button ng-click="getPublicGists()">Get Public Gists</button>
+    <div ng-repeat="gist in publicGists">{{gist.url}}</div>
+</body>
+
+<script>
+    angular.module('app', [])
+    .controller('gistController', ['$scope', '$http', function($scope, $http) {
+            $scope.gist = {};
+            $scope.publicGists = [];
+            $scope.tokenNoteName = "";
+//            {"description": "a gist for a user with token api call","public": true,"files": {"file3.txt": {"content": "String file contents"}}}
+            $scope.submitGist = function() {
+                var gistToSubmit = {};
+                gistToSubmit.description = $scope.gist.description;
+                gistToSubmit.public = true;
+                gistToSubmit.files = {};
+                gistToSubmit.files[$scope.gist.name] = {};
+                gistToSubmit.files[$scope.gist.name].content = $scope.gist.content;
+
+                var token = {"Authorization": "token <your token>"};
+                $http({
+                    url: "https://api.github.com/gists",
+                    method: 'POST',
+                    headers: token,
+                    data: gistToSubmit
+                })
+                    .success(function(data, status, headers, config) {
+                        $scope.authorization = data;
+                        $scope.status = status;
+                    })
+                    .error(function(data, status, headers, config) {
+                            var error = data;
+                    });
+            };
+            $scope.createToken = function() {
+                var gistToken = {};
+//                {"scopes": ["gist"]},"note":"ssstest3"}
+                gistToken.scopes = ["gist"];
+                gistToken.note = $scope.tokenNoteName;
+                var basicAuth = {"Authorization": "Basic <your user info>"};
+                $http({
+                    url: "https://api.github.com/authorizations",
+                    method: 'POST',
+                    headers: basicAuth,
+                    data: gistToken
+                })
+                        .success(function(data, status, headers, config) {
+                            $scope.authorization = data;
+                        })
+                        .error(function(data, status, headers, config) {
+                            var error = data;
+                        });
+            };
+            $scope.allTokenDescriptions = function() {
+                $http.get("https://api.github.com/authorizations", {headers: {"Authorization": "Basic <your user info>"}})
+                    .success(function(data, status, headers, config) {
+                        $scope.tokenDescriptions = data;
+                    })
+                    .error(function(data, status, headers, config) {
+                    });
+            };
+
+            $scope.getPublicGists = function() {
+                $http.get("https://api.github.com/gists/public")
+                    .success(function(data, status, headers, config) {
+                        $scope.publicGists = data;
+                    })
+                    .error(function(data, status, headers, config) {
+                    });
+            };
+        }
+    ]);
+</script>
+</html>
